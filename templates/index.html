@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Chris Translator</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- 添加favicon -->
+    <link rel="icon" href="/img/favicon.png" type="image/png">
+    <!-- 添加Markdown支持 -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- 添加字体和图标 -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/boxicons@2.1.4/css/boxicons.min.css">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        :root {
+            --primary-color: #6C63FF;
+            --primary-light: #837DFF;
+            --primary-dark: #5046e5;
+            --secondary-color: #FF6584;
+            --dark-color: #2A265F;
+            --light-color: #f5f5ff;
+            --success-color: #2ecc71;
+            --bg-gradient: linear-gradient(135deg, #f5f7fa 0%, #e4e8ff 100%);
+            --card-bg: rgba(255, 255, 255, 0.9);
+            --shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            --border-radius: 16px;
+            --transition: all 0.3s ease;
+            --thumb-color: #6C63FF; /* 动态滑块颜色变量 */
+        }
+        
+        body {
+            font-family: 'Poppins', 'Segoe UI', Arial, sans-serif;
+            background: var(--bg-gradient);
+            color: #202124;
+            line-height: 1.5;
+            min-height: 100vh;
+            padding: 0;
+            overflow-x: hidden;
+            position: relative;
+        }
+        
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            right: 0;
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, rgba(108, 99, 255, 0.1) 0%, rgba(108, 99, 255, 0) 70%);
+            z-index: -1;
+        }
+        
+        body::after {
+            content: '';
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, rgba(255, 101, 132, 0.1) 0%, rgba(255, 101, 132, 0) 70%);
+            z-index: -1;
+        }
+        
+        .header {
+            text-align: center;
+            padding: 20px 0;
+            background-color: var(--card-bg);
+            box-shadow: var(--shadow);
+            margin-bottom: 30px;
+            position: relative;
+            overflow: hidden;
+            border-bottom-left-radius: 30px;
+            border-bottom-right-radius: 30px;
+        }
+        
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(108, 99, 255, 0.05), transparent);
+            transform: rotate(45deg);
+            animation: headerShine 6s infinite linear;
+        }
+        
+        @keyframes headerShine {
+            0% {
+                transform: translateX(-100%) rotate(45deg);
+            }
+            100% {
+                transform: translateX(100%) rotate(45deg);
+            }
+        }
+        
+        h1 {
+            font-size: 28px;
+            font-weight: 600;
+            color: var(--dark-color);
+            position: relative;
+            display: inline-block;
+        }
+        
+        h1::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 50px;
+            height: 3px;
+            background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+            border-radius: 3px;
+        }
+        
+        .logo-title {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+        }
+        
+        .logo-img {
+            height: 40px;
+            width: auto;
+        }
+        
+        .main-container {
+            display: flex;
+            max-width: 98%;
+            min-height: calc(100vh - 120px);
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        
+        .left-panel {
+            flex: 5;
+            padding: 0 20px 20px 0;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .middle-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 250px 10px 0;
+        }
+        
+        .right-panel {
+            flex: 5;
+            padding: 0 0 20px 20px;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .panel-wrapper {
+            background-color: var(--card-bg);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            transition: var(--transition);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(5px);
+        }
+        
+        .panel-wrapper:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+        }
+        
+        .panel-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: linear-gradient(to right, rgba(108, 99, 255, 0.1), rgba(255, 255, 255, 0));
+        }
+        
+        .panel-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--dark-color);
+            display: flex;
+            align-items: center;
+        }
+        
+        .panel-title::before {
+            content: '';
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            background-color: var(--primary-color);
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+        
+        .panel-content {
+            padding: 20px;
+            flex: 1;
+            overflow: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            width: 100%;
+        }
+        
+        /* 设置项横排样式 */
+        .settings-row {
+            display: flex;
+            flex-direction: row;
+            gap: 20px;
+            width: 100%;
+            margin-bottom: 20px;
+        }
+        
+        .settings-row .input-group {
+            flex: 1;
+        }
+        
+        /* 温度滑动条样式 */
+        .slider-container {
+            display: flex;
+            align-items: center;
+            width: 100%;
+            gap: 15px;
+        }
+        
+        .temperature-slider {
+            flex: 1;
+            -webkit-appearance: none;
+            height: 8px;
+            border-radius: 10px;
+            background: linear-gradient(to right, #6C63FF 0%, #9F97FF 50%, #FF6584 100%);
+            outline: none;
+            transition: var(--transition);
+        }
+        
+        .temperature-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: white;
+            border: 2px solid var(--thumb-color);
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+            transition: all 0.3s ease;
+        }
+        
+        .temperature-slider::-webkit-slider-thumb:hover {
+            transform: scale(1.1);
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
+        }
+        
+        .temperature-slider::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: white;
+            border: 2px solid var(--thumb-color);
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+            transition: all 0.3s ease;
+        }
+        
+        .temperature-slider::-moz-range-thumb:hover {
+            transform: scale(1.1);
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
+        }
+        
+        #temperature-value {
+            font-size: 16px;
+            font-weight: 500;
+            color: var(--dark-color);
+            min-width: 36px;
+            text-align: center;
+            padding: 4px 8px;
+            background-color: rgba(255, 255, 255, 0.7);
+            border-radius: 8px;
+            border: 1px solid rgba(0, 0, 0, 0.06);
+        }
+        
+        label {
+            font-size: 14px;
+            color: var(--dark-color);
+            font-weight: 500;
+            transition: var(--transition);
+        }
+        
+        textarea {
+            width: 100%;
+            min-height: 120px;
+            border: 2px solid rgba(0, 0, 0, 0.08);
+            border-radius: 12px;
+            padding: 14px;
+            font-size: 15px;
+            resize: vertical;
+            font-family: 'Poppins', 'Segoe UI', Arial, sans-serif;
+            transition: var(--transition);
+            background-color: rgba(255, 255, 255, 0.8);
+        }
+        
+        textarea:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(108, 99, 255, 0.2);
+            background-color: white;
+        }
+        
+        select {
+            width: 100%;
+            padding: 12px 14px;
+            border: 2px solid rgba(0, 0, 0, 0.08);
+            border-radius: 12px;
+            font-size: 14px;
+            background-color: rgba(255, 255, 255, 0.8);
+            color: var(--dark-color);
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24'%3E%3Cpath d='M7 10l5 5 5-5z' fill='%232A265F'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 14px center;
+            transition: var(--transition);
+        }
+        
+        select:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(108, 99, 255, 0.2);
+            background-color: white;
+        }
+        
+        input[type="number"] {
+            width: 100%;
+            padding: 12px 14px;
+            border: 2px solid rgba(0, 0, 0, 0.08);
+            border-radius: 12px;
+            font-size: 14px;
+            background-color: rgba(255, 255, 255, 0.8);
+            color: var(--dark-color);
+            transition: var(--transition);
+            -moz-appearance: textfield;
+        }
+        
+        /* 去掉Chrome浏览器中的上下箭头 */
+        input[type="number"]::-webkit-inner-spin-button, 
+        input[type="number"]::-webkit-outer-spin-button { 
+            -webkit-appearance: none;
+            margin: 0; 
+        }
+        
+        input[type="number"]:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(108, 99, 255, 0.2);
+            background-color: white;
+        }
+        
+        .select-wrapper {
+            width: 100%;
+            position: relative;
+        }
+        
+
+        
+        button {
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+            color: white;
+            padding: 10px 16px;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: var(--transition);
+            width: 110px;
+            height: 110px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 10px 20px rgba(80, 70, 229, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: var(--transition);
+        }
+        
+        button:hover {
+            transform: translateY(-5px) scale(1.05);
+            box-shadow: 0 15px 25px rgba(80, 70, 229, 0.4);
+        }
+        
+        button:hover::before {
+            animation: buttonShine 1.5s infinite;
+        }
+        
+        @keyframes buttonShine {
+            0% {
+                left: -100%;
+            }
+            20% {
+                left: 100%;
+            }
+            100% {
+                left: 100%;
+            }
+        }
+        
+        button:active {
+            transform: translateY(0) scale(0.95);
+            background: var(--primary-dark);
+            box-shadow: 0 5px 15px rgba(80, 70, 229, 0.3);
+        }
+        
+        #result {
+            min-height: 280px;
+            line-height: 1.6;
+            color: var(--dark-color);
+            word-wrap: break-word;
+            overflow-y: auto;
+            flex: 1;
+            padding: 10px;
+            border-radius: 10px;
+            background-color: rgba(255, 255, 255, 0.7);
+            transition: var(--transition);
+        }
+        
+        /* Markdown样式 */
+        #result h1, #result h2, #result h3, #result h4 {
+            margin-top: 1em;
+            margin-bottom: 0.5em;
+            color: var(--primary-dark);
+        }
+        
+        #result ul, #result ol {
+            padding-left: 20px;
+        }
+        
+        #result code {
+            background-color: rgba(108, 99, 255, 0.1);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Consolas', monospace;
+            color: var(--primary-dark);
+        }
+        
+        #result pre {
+            background-color: rgba(42, 38, 95, 0.05);
+            padding: 15px;
+            border-radius: 10px;
+            overflow-x: auto;
+            border-left: 3px solid var(--primary-color);
+        }
+        
+        #result pre code {
+            background-color: transparent;
+            padding: 0;
+        }
+        
+        #result blockquote {
+            border-left: 4px solid var(--primary-light);
+            padding-left: 15px;
+            color: #545454;
+            margin: 0;
+            background-color: rgba(108, 99, 255, 0.05);
+            border-radius: 0 8px 8px 0;
+            padding: 10px 15px;
+        }
+        
+        #result table {
+            border-collapse: collapse;
+            width: 100%;
+            border-radius: 8px;
+            overflow: hidden;
+            margin: 15px 0;
+        }
+        
+        #result th, #result td {
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            padding: 10px;
+        }
+        
+        #result th {
+            background-color: rgba(108, 99, 255, 0.1);
+            color: var(--dark-color);
+        }
+        
+        #loading {
+            display: none;
+            color: var(--dark-color);
+            text-align: center;
+            margin: 15px 0;
+            position: relative;
+            font-weight: 500;
+        }
+        
+        #loading::after {
+            content: "...";
+            position: absolute;
+            overflow: hidden;
+            display: inline-block;
+            vertical-align: bottom;
+            animation: dots 1.5s steps(4, end) infinite;
+            width: 0px;
+        }
+        
+        @keyframes dots {
+            to {
+                width: 20px;
+            }
+        }
+        
+        .required-label::after {
+            content: " *";
+            color: var(--secondary-color);
+        }
+        
+        .error {
+            color: var(--secondary-color);
+            font-size: 12px;
+            margin-top: 4px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .error::before {
+            content: '!';
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 16px;
+            height: 16px;
+            background-color: var(--secondary-color);
+            color: white;
+            border-radius: 50%;
+            margin-right: 6px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        #user_prompt {
+            background-color: rgba(0, 0, 0, 0.02);
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .compact-textarea_low {
+            min-height: 80px;
+        }
+
+        .compact-textarea {
+            min-height: 380px;
+        }
+        
+        /* 响应式设计 */
+        @media (max-width: 992px) {
+            .main-container {
+                flex-direction: column;
+                padding: 15px;
+            }
+            
+            .left-panel, .middle-panel, .right-panel {
+                width: 100%;
+                padding: 0;
+                margin-bottom: 20px;
+            }
+            
+            .middle-panel {
+                padding: 10px 0;
+                order: 3;
+            }
+            
+            .settings-row {
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            button {
+                width: 90px;
+                height: 90px;
+                font-size: 14px;
+            }
+            
+            .header {
+                margin-bottom: 20px;
+                border-radius: 0 0 20px 20px;
+            }
+            
+            h1 {
+                font-size: 24px;
+            }
+        }
+        
+        /* 动画效果 */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .panel-wrapper {
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+        
+        .left-panel .panel-wrapper {
+            animation-delay: 0.1s;
+        }
+        
+        .right-panel .panel-wrapper {
+            animation-delay: 0.3s;
+        }
+        
+        /* 自定义滚动条 */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background-color: rgba(0, 0, 0, 0.05);
+            border-radius: 10px;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background-color: rgba(108, 99, 255, 0.3);
+            border-radius: 10px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background-color: rgba(108, 99, 255, 0.5);
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo-title">
+            <img src="/img/favicon.png" alt="Logo" class="logo-img">
+            <h1>Chris Translator</h1>
+        </div>
+    </div>
+    
+    <div class="main-container">
+        <!-- 左侧面板 -->
+        <div class="left-panel">
+            <div class="panel-wrapper">
+                <div class="panel-header">
+                    <div class="panel-title">翻译设置</div>
+                </div>
+                <div class="panel-content">
+                    <div class="settings-row">
+                        <div class="input-group">
+                            <label for="target_language" class="required-label">目标语言</label>
+                            <select id="target_language">
+                                <option value="中文" selected>中文</option>
+                                <option value="English">英文</option>
+                                <option value="日文">日文</option>
+                                <option value="韩文">韩文</option>
+                            </select>
+                        </div>
+                        
+                        <div class="input-group">
+                            <label for="model" class="required-label">翻译模型</label>
+                            <select id="model">
+                                <option value="doubao-lite-32k-240828" selected>doubao-lite-32k-240828</option>
+                                <option value="doubao-1-5-lite-32k-250115">doubao-1-5-lite-32k-250115</option>
+                            </select>
+                        </div>
+                        
+                        <div class="input-group">
+                            <label for="temperature" class="required-label">模型温度</label>
+                            <div class="slider-container">
+                                <input type="range" id="temperature" min="0" max="2" step="0.1" value="0.6" class="temperature-slider">
+                                <span id="temperature-value">0.6</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label for="original_content" class="required-label">待翻译内容</label>
+                        <textarea id="original_content"  class="compact-textarea" placeholder="请输入待翻译内容..." required></textarea>
+                        <div id="original_error" class="error" style="display: none;">请输入待翻译内容</div>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label for="system_prompt">系统提示</label>
+                        <textarea id="system_prompt" class="compact-textarea_low" placeholder="请输入系统提示...">你是个翻译专家.擅长专利文本的翻译。</textarea>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label for="user_prompt">用户提示 (自动生成)</label>
+                        <textarea id="user_prompt" class="compact-textarea"></textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 中间面板 - 翻译按钮 -->
+        <div class="middle-panel">
+            <button id="translate_btn">翻译</button>
+            <div id="loading">翻译中</div>
+        </div>
+        
+        <!-- 右侧面板 - 翻译结果 -->
+        <div class="right-panel">
+            <div class="panel-wrapper">
+                <div class="panel-header">
+                    <div class="panel-title">翻译结果</div>
+                </div>
+                <div class="panel-content">
+                    <div id="result"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // 从JSON文件加载提示模板
+        let englishTemplateData = {};
+        let chineseTemplateData = {};
+        
+        // 加载提示模板
+        async function loadPromptTemplates() {
+            try {
+                // 加载英文提示
+                const enResponse = await fetch('/prompt/translation_en.json');
+                englishTemplateData = await enResponse.json();
+                
+                // 加载中文提示
+                const cnResponse = await fetch('/prompt/translation_cn.json');
+                
+                chineseTemplateData = await cnResponse.json();
+                
+                // 设置默认系统提示
+                document.getElementById('system_prompt').value = chineseTemplateData.system_prompt;
+
+                // 初始化用户提示
+                updateUserPrompt();
+            } catch (error) {
+                console.error('加载提示模板失败:', error);
+            }
+        }
+
+        // 根据输入更新用户提示
+        function updateUserPrompt() {
+            const targetLanguage = document.getElementById('target_language').value;
+            const originalContent = document.getElementById('original_content').value.trim();
+            const userPromptElement = document.getElementById('user_prompt');
+
+            // 根据目标语言选择提示模板
+            let template = targetLanguage === 'English' ? 
+                englishTemplateData.user_prompt : 
+                chineseTemplateData.user_prompt;
+            
+            // 替换模板中的变量
+            let userPrompt = template
+                .replace('\\${target_lang}', targetLanguage)
+                .replace('\\${orginal_content}', originalContent);
+                
+            userPromptElement.value = userPrompt;
+            
+            // 同时更新系统提示
+            document.getElementById('system_prompt').value = targetLanguage === 'English' ? 
+                englishTemplateData.system_prompt : 
+                chineseTemplateData.system_prompt;
+        }
+
+        // 监听目标语言和原始内容的变化
+        document.getElementById('target_language').addEventListener('change', updateUserPrompt);
+        document.getElementById('original_content').addEventListener('input', updateUserPrompt);
+        
+        // 页面加载时初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            // 加载提示模板
+            loadPromptTemplates();
+            
+            // 添加面板入场动画
+            const panels = document.querySelectorAll('.panel-wrapper');
+            panels.forEach((panel, index) => {
+                panel.style.opacity = '0';
+                panel.style.transform = 'translateY(20px)';
+                setTimeout(() => {
+                    panel.style.opacity = '1';
+                    panel.style.transform = 'translateY(0)';
+                }, 100 * (index + 1));
+            });
+            
+            // 初始化温度滑块
+            initTemperatureSlider();
+        });
+
+        // 初始化温度滑块功能
+        function initTemperatureSlider() {
+            const temperatureSlider = document.getElementById('temperature');
+            const temperatureValue = document.getElementById('temperature-value');
+            
+            // 更新显示值和滑块样式
+            function updateTemperatureValue() {
+                const value = parseFloat(temperatureSlider.value);
+                temperatureValue.textContent = value.toFixed(1);
+                
+                // 基于值计算颜色
+                const percent = value / 2 * 100; // 0-2 转换为 0-100%
+                
+                // 根据温度值变化颜色：温度低时蓝色，温度高时红色
+                let thumbColor;
+                if (value < 0.7) {
+                    thumbColor = 'var(--primary-color)'; // 蓝色
+                } else if (value < 1.4) {
+                    thumbColor = '#9F97FF'; // 紫色
+                } else {
+                    thumbColor = 'var(--secondary-color)'; // 红色
+                }
+                
+                // 更新滑块按钮颜色
+                document.documentElement.style.setProperty('--thumb-color', thumbColor);
+                
+                // 动态更新值的显示颜色
+                temperatureValue.style.color = thumbColor;
+                temperatureValue.style.borderColor = thumbColor;
+                
+                // 增加一点动画效果
+                temperatureValue.style.transform = 'scale(1.1)';
+                setTimeout(() => {
+                    temperatureValue.style.transform = 'scale(1)';
+                }, 150);
+            }
+            
+            // 监听滑块值变化
+            temperatureSlider.addEventListener('input', updateTemperatureValue);
+            
+            // 初始化一次
+            updateTemperatureValue();
+        }
+
+        document.getElementById('translate_btn').addEventListener('click', async function() {
+            const systemPrompt = document.getElementById('system_prompt').value.trim();
+            const userPrompt = document.getElementById('user_prompt').value.trim();
+            const originalContent = document.getElementById('original_content').value.trim();
+            const temperature = document.getElementById('temperature').value;
+            const resultElement = document.getElementById('result');
+            const loadingElement = document.getElementById('loading');
+            const originalErrorElement = document.getElementById('original_error');
+            
+            // 验证待翻译内容是否填写
+            if (!originalContent) {
+                originalErrorElement.style.display = 'block';
+                return;
+            } else {
+                originalErrorElement.style.display = 'none';
+            }
+            
+            if (!systemPrompt || !userPrompt) {
+                alert('请确保系统提示和用户提示不为空');
+                return;
+            }
+            
+            // 验证温度是否有效
+            if (temperature === '' || isNaN(parseFloat(temperature)) || parseFloat(temperature) < 0 || parseFloat(temperature) > 2) {
+                alert('请输入有效的模型温度值（0-2之间）');
+                return;
+            }
+            
+            resultElement.innerHTML = '';
+            loadingElement.style.display = 'block';
+            
+            try {
+                // 创建 EventSource 连接
+                const response = await fetch('/translate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        system_prompt: systemPrompt,
+                        user_prompt: userPrompt,
+                        temperature: parseFloat(document.getElementById('temperature').value),
+                        model: document.getElementById('model').value,
+                    }),
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || '请求失败');
+                }
+                
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let accumulatedMarkdown = '';
+                
+                while (true) {
+                    const { value, done } = await reader.read();
+                    if (done) break;
+                    
+                    const text = decoder.decode(value);
+                    const lines = text.split('\n\n');
+                    
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            try {
+                                const data = JSON.parse(line.substring(6));
+                                
+                                if (data.error) {
+                                    resultElement.innerHTML = `<div class="error">错误: ${data.error}</div>`;
+                                } else if (data.content) {
+                                    accumulatedMarkdown += data.content;
+                                    // 使用marked库渲染Markdown
+                                    resultElement.innerHTML = marked.parse(accumulatedMarkdown);
+                                    // 自动滚动到底部
+                                    resultElement.scrollTop = resultElement.scrollHeight;
+                                }
+                            } catch (e) {
+                                console.error('解析数据出错:', e);
+                            }
+                        }
+                    }
+                }
+            } catch (error) {
+                resultElement.innerHTML = `<div class="error">错误: ${error.message}</div>`;
+                console.error('请求出错:', error);
+            } finally {
+                loadingElement.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html> 
