@@ -402,6 +402,15 @@
             overflow: hidden;
         }
         
+        button:disabled {
+            background: linear-gradient(135deg, #a9a6dd, #7a74c7);
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: 0 5px 10px rgba(80, 70, 229, 0.15);
+            opacity: 0.8;
+            color: rgba(255, 255, 255, 0.7);
+        }
+        
         button::before {
             content: '';
             position: absolute;
@@ -413,12 +422,12 @@
             transition: var(--transition);
         }
         
-        button:hover {
+        button:hover:not(:disabled) {
             transform: translateY(-5px) scale(1.05);
             box-shadow: 0 15px 25px rgba(80, 70, 229, 0.4);
         }
         
-        button:hover::before {
+        button:hover:not(:disabled)::before {
             animation: buttonShine 1.5s infinite;
         }
         
@@ -662,6 +671,27 @@
         ::-webkit-scrollbar-thumb:hover {
             background-color: rgba(108, 99, 255, 0.5);
         }
+        
+        /* 翻译中旋转动画 */
+        @keyframes translating {
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+        
+        .translating::before {
+            content: '';
+            position: absolute;
+            width: 85%;
+            height: 85%;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top: 3px solid white;
+            border-radius: 50%;
+            animation: translating 1.5s linear infinite;
+        }
     </style>
 </head>
 <body>
@@ -684,8 +714,8 @@
                         <div class="input-group">
                             <label for="target_language" class="required-label">目标语言</label>
                             <select id="target_language">
-                                <option value="中文" selected>中文</option>
-                                <option value="English">英文</option>
+                                <option value="English" selected>英文</option>
+                                <option value="中文">中文</option>
                                 <option value="日文">日文</option>
                                 <option value="韩文">韩文</option>
                             </select>
@@ -694,8 +724,10 @@
                         <div class="input-group">
                             <label for="model" class="required-label">翻译模型</label>
                             <select id="model">
-                                <option value="doubao-lite-32k-240828" selected>doubao-lite-32k-240828</option>
-                                <option value="doubao-1-5-lite-32k-250115">doubao-1-5-lite-32k-250115</option>
+                                <option value="doubao-1-5-lite-32k-250115" selected>doubao-1-5-lite-32k-250115</option>
+                                <option value="google_v1_translateHtml">谷歌翻译/v1/translateHtml</option>
+                                <option value="doubao-lite-32k-240828">doubao-lite-32k-240828</option>
+                                <option value="doubao-1-5-pro-32k-250115">doubao-1-5-pro-32k-250115</option>
                             </select>
                         </div>
                         
@@ -730,7 +762,6 @@
         <!-- 中间面板 - 翻译按钮 -->
         <div class="middle-panel">
             <button id="translate_btn">翻译</button>
-            <div id="loading">翻译中</div>
         </div>
         
         <!-- 右侧面板 - 翻译结果 -->
@@ -750,6 +781,7 @@
         // 从JSON文件加载提示模板
         let englishTemplateData = {};
         let chineseTemplateData = {};
+        let japaneseTemplateData = {};
         
         // 加载提示模板
         async function loadPromptTemplates() {
@@ -760,8 +792,11 @@
                 
                 // 加载中文提示
                 const cnResponse = await fetch('/prompt/translation_cn.json');
-                
                 chineseTemplateData = await cnResponse.json();
+                
+                // 加载日文提示
+                const jaResponse = await fetch('/prompt/translation_ja.json');
+                japaneseTemplateData = await jaResponse.json();
                 
                 // 设置默认系统提示
                 document.getElementById('system_prompt').value = chineseTemplateData.system_prompt;
@@ -778,28 +813,59 @@
             const targetLanguage = document.getElementById('target_language').value;
             const originalContent = document.getElementById('original_content').value.trim();
             const userPromptElement = document.getElementById('user_prompt');
+            const selectedModel = document.getElementById('model').value;
+            
+            // 如果是谷歌翻译接口，直接复制原始内容
+            if (selectedModel === 'google_v1_translateHtml') {
+                userPromptElement.value = originalContent;
+                return;
+            }
 
             // 根据目标语言选择提示模板
-            let template = targetLanguage === 'English' ? 
-                englishTemplateData.user_prompt : 
-                chineseTemplateData.user_prompt;
+            let templateData;
+            if (targetLanguage === 'English' || targetLanguage === '韩文') {
+                templateData = englishTemplateData;
+            } else if (targetLanguage === '日文') {
+                templateData = japaneseTemplateData;
+            } else { // 默认中文
+                templateData = chineseTemplateData;
+            }
             
             // 替换模板中的变量
-            let userPrompt = template
+            let userPrompt = templateData.user_prompt
                 .replace('\\${target_lang}', targetLanguage)
                 .replace('\\${orginal_content}', originalContent);
                 
             userPromptElement.value = userPrompt;
             
             // 同时更新系统提示
-            document.getElementById('system_prompt').value = targetLanguage === 'English' ? 
-                englishTemplateData.system_prompt : 
-                chineseTemplateData.system_prompt;
+            document.getElementById('system_prompt').value = templateData.system_prompt;
         }
 
         // 监听目标语言和原始内容的变化
         document.getElementById('target_language').addEventListener('change', updateUserPrompt);
         document.getElementById('original_content').addEventListener('input', updateUserPrompt);
+        document.getElementById('model').addEventListener('change', function() {
+            const selectedModel = this.value;
+            const temperatureContainer = document.querySelector('.input-group:has(#temperature)');
+            const systemPromptContainer = document.querySelector('.input-group:has(#system_prompt)');
+            
+            // 如果是谷歌翻译接口，禁用模型温度和系统提示
+            if (selectedModel === 'google_v1_translateHtml') {
+                temperatureContainer.style.opacity = '0.5';
+                systemPromptContainer.style.opacity = '0.5';
+                document.getElementById('temperature').disabled = true;
+                document.getElementById('system_prompt').disabled = true;
+            } else {
+                temperatureContainer.style.opacity = '1';
+                systemPromptContainer.style.opacity = '1';
+                document.getElementById('temperature').disabled = false;
+                document.getElementById('system_prompt').disabled = false;
+            }
+            
+            // 更新用户提示
+            updateUserPrompt();
+        });
         
         // 页面加载时初始化
         document.addEventListener('DOMContentLoaded', function() {
@@ -870,45 +936,62 @@
             const userPrompt = document.getElementById('user_prompt').value.trim();
             const originalContent = document.getElementById('original_content').value.trim();
             const temperature = document.getElementById('temperature').value;
+            const model = document.getElementById('model').value;
+            const targetLanguage = document.getElementById('target_language').value;
             const resultElement = document.getElementById('result');
-            const loadingElement = document.getElementById('loading');
-            const originalErrorElement = document.getElementById('original_error');
+            const translateBtn = document.getElementById('translate_btn');
             
             // 验证待翻译内容是否填写
             if (!originalContent) {
-                originalErrorElement.style.display = 'block';
+                document.getElementById('original_error').style.display = 'block';
                 return;
             } else {
-                originalErrorElement.style.display = 'none';
+                document.getElementById('original_error').style.display = 'none';
             }
             
-            if (!systemPrompt || !userPrompt) {
+            // 如果不是谷歌翻译接口，验证系统提示和用户提示
+            if (model !== 'google_v1_translateHtml' && (!systemPrompt || !userPrompt)) {
                 alert('请确保系统提示和用户提示不为空');
                 return;
             }
             
-            // 验证温度是否有效
-            if (temperature === '' || isNaN(parseFloat(temperature)) || parseFloat(temperature) < 0 || parseFloat(temperature) > 2) {
+            // 如果不是谷歌翻译接口，验证温度是否有效
+            if (model !== 'google_v1_translateHtml' && (temperature === '' || isNaN(parseFloat(temperature)) || parseFloat(temperature) < 0 || parseFloat(temperature) > 2)) {
                 alert('请输入有效的模型温度值（0-2之间）');
                 return;
             }
             
             resultElement.innerHTML = '';
-            loadingElement.style.display = 'block';
+            
+            // 禁用按钮，并显示"翻译中"
+            translateBtn.disabled = true;
+            translateBtn.innerText = '翻译中';
+            translateBtn.style.cursor = 'not-allowed';
+            translateBtn.classList.add('translating');
+            translateBtn.setAttribute('disabled', 'disabled'); // 确保禁用状态
             
             try {
-                // 创建 EventSource 连接
+                // 创建请求体
+                const requestBody = {
+                    model: model,
+                    user_prompt: userPrompt
+                };
+                
+                // 如果是谷歌翻译接口，添加目标语言
+                if (model === 'google_v1_translateHtml') {
+                    requestBody.target_language = targetLanguage;
+                } else {
+                    requestBody.system_prompt = systemPrompt;
+                    requestBody.temperature = parseFloat(temperature);
+                }
+                
+                // 发送请求
                 const response = await fetch('/translate', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({
-                        system_prompt: systemPrompt,
-                        user_prompt: userPrompt,
-                        temperature: parseFloat(document.getElementById('temperature').value),
-                        model: document.getElementById('model').value,
-                    }),
+                    body: JSON.stringify(requestBody),
                 });
                 
                 if (!response.ok) {
@@ -916,34 +999,65 @@
                     throw new Error(errorData.error || '请求失败');
                 }
                 
-                const reader = response.body.getReader();
-                const decoder = new TextDecoder();
-                let accumulatedMarkdown = '';
-                
-                while (true) {
-                    const { value, done } = await reader.read();
-                    if (done) break;
+                // 根据模型类型处理不同的响应方式
+                if (model === 'google_v1_translateHtml') {
+                    // 谷歌翻译：直接获取JSON响应
+                    const data = await response.json();
+                    if (data.error) {
+                        resultElement.innerHTML = `<div class="error">错误: ${data.error}</div>`;
+                    } else if (data.result) {
+                        resultElement.innerHTML = data.result;
+                    }
+                } else {
+                    // 大模型：流式响应处理
+                    const reader = response.body.getReader();
+                    const decoder = new TextDecoder();
+                    let accumulatedMarkdown = '';
                     
-                    const text = decoder.decode(value);
-                    const lines = text.split('\n\n');
-                    
-                    for (const line of lines) {
-                        if (line.startsWith('data: ')) {
-                            try {
-                                const data = JSON.parse(line.substring(6));
-                                
-                                if (data.error) {
-                                    resultElement.innerHTML = `<div class="error">错误: ${data.error}</div>`;
-                                } else if (data.content) {
-                                    accumulatedMarkdown += data.content;
+                    while (true) {
+                        const { value, done } = await reader.read();
+                        if (done) break;
+                        
+                        const text = decoder.decode(value);
+                        const lines = text.split('\n\n');
+                        
+                        for (const line of lines) {
+                            if (line.startsWith('data: ')) {
+                                try {
+                                    const content = line.substring(6);
+                                    accumulatedMarkdown += content;
                                     // 使用marked库渲染Markdown
                                     resultElement.innerHTML = marked.parse(accumulatedMarkdown);
                                     // 自动滚动到底部
                                     resultElement.scrollTop = resultElement.scrollHeight;
+                                } catch (e) {
+                                    console.error('解析数据出错:', e);
                                 }
-                            } catch (e) {
-                                console.error('解析数据出错:', e);
                             }
+                        }
+                    }
+                    
+                    // 在翻译完成后处理结果，移除前后的 ###
+                    if (model !== 'google_v1_translateHtml') {
+                        // 检查并移除前后的 ###
+                        const processedResult = removeHashTags(accumulatedMarkdown);
+                        
+                        if (processedResult.wasProcessed) {
+                            // 显示处理后的结果
+                            resultElement.innerHTML = marked.parse(processedResult.text);
+                            
+                            // 添加提示信息
+                            const notificationDiv = document.createElement('div');
+                            notificationDiv.className = 'notification';
+                            notificationDiv.style.padding = '8px';
+                            notificationDiv.style.marginTop = '10px';
+                            notificationDiv.style.backgroundColor = 'rgba(108, 99, 255, 0.1)';
+                            notificationDiv.style.borderRadius = '8px';
+                            notificationDiv.style.fontSize = '14px';
+                            notificationDiv.style.color = 'var(--dark-color)';
+                            notificationDiv.textContent = '翻译结果前后存在 ###，已由系统自动去除';
+                            
+                            resultElement.appendChild(notificationDiv);
                         }
                     }
                 }
@@ -951,9 +1065,38 @@
                 resultElement.innerHTML = `<div class="error">错误: ${error.message}</div>`;
                 console.error('请求出错:', error);
             } finally {
-                loadingElement.style.display = 'none';
+                // 恢复按钮状态
+                translateBtn.disabled = false;
+                translateBtn.innerText = '翻译';
+                translateBtn.style.cursor = 'pointer';
+                translateBtn.classList.remove('translating');
+                translateBtn.removeAttribute('disabled'); // 确保移除禁用属性
             }
         });
+
+        // 移除文本前后的 ### 标记
+        function removeHashTags(text) {
+            const trimmed = text.trim();
+            let wasProcessed = false;
+            let processedText = trimmed;
+            
+            // 检查开头是否有 ###
+            if (trimmed.startsWith('###')) {
+                processedText = processedText.replace(/^###\s*/, '');
+                wasProcessed = true;
+            }
+            
+            // 检查结尾是否有 ###
+            if (trimmed.endsWith('###')) {
+                processedText = processedText.replace(/\s*###$/, '');
+                wasProcessed = true;
+            }
+            
+            return {
+                text: processedText,
+                wasProcessed: wasProcessed
+            };
+        }
     </script>
 </body>
 </html> 
