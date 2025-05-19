@@ -1007,6 +1007,19 @@
                         resultElement.innerHTML = `<div class="error">错误: ${data.error}</div>`;
                     } else if (data.result) {
                         resultElement.innerHTML = data.result;
+                        
+                        // 计算并显示语言密度
+                        const density = calculateLanguageDensity(data.result, targetLanguage);
+                        const densityDiv = document.createElement('div');
+                        densityDiv.className = 'language-density';
+                        densityDiv.style.marginTop = '15px';
+                        densityDiv.style.padding = '10px';
+                        densityDiv.style.backgroundColor = 'rgba(108, 99, 255, 0.1)';
+                        densityDiv.style.borderRadius = '8px';
+                        densityDiv.style.fontSize = '14px';
+                        densityDiv.style.color = 'var(--dark-color)';
+                        densityDiv.innerHTML = `<strong>${targetLanguage}语言密度为：${density}%</strong>`;
+                        resultElement.appendChild(densityDiv);
                     }
                 } else {
                     // 大模型：流式响应处理
@@ -1059,6 +1072,20 @@
                             
                             resultElement.appendChild(notificationDiv);
                         }
+                        
+                        // 计算并显示语言密度
+                        const renderedText = resultElement.innerHTML;
+                        const density = calculateLanguageDensity(renderedText, targetLanguage);
+                        const densityDiv = document.createElement('div');
+                        densityDiv.className = 'language-density';
+                        densityDiv.style.marginTop = '15px';
+                        densityDiv.style.padding = '10px';
+                        densityDiv.style.backgroundColor = 'rgba(108, 99, 255, 0.1)';
+                        densityDiv.style.borderRadius = '8px';
+                        densityDiv.style.fontSize = '14px';
+                        densityDiv.style.color = 'var(--dark-color)';
+                        densityDiv.innerHTML = `<strong>${targetLanguage} 语言密度为：${density}%</strong>`;
+                        resultElement.appendChild(densityDiv);
                     }
                 }
             } catch (error) {
@@ -1096,6 +1123,46 @@
                 text: processedText,
                 wasProcessed: wasProcessed
             };
+        }
+
+        // 计算语言密度
+        function calculateLanguageDensity(text, language) {
+            // 移除HTML标签以得到纯文本
+            const plainText = text.replace(/<[^>]*>/g, '');
+            const totalChars = plainText.length;
+            if (totalChars === 0) return 0;
+
+            let langChars = 0;
+            let langRegex;
+
+            switch (language) {
+                case "中文":
+                    // 匹配中文字符
+                    langRegex = /[\u4e00-\u9fff]/g;
+                    break;
+                case "日文":
+                    // 匹配日文字符（平假名、片假名、汉字）
+                    langRegex = /[\u3040-\u309F\u30A0-\u30FF\u4e00-\u9fff]/g;
+                    break;
+                case "韩文":
+                    // 匹配韩文字符
+                    langRegex = /[\uAC00-\uD7AF\u1100-\u11FF\u3130-\u318F]/g;
+                    break;
+                case "English":
+                    // 匹配英文字符
+                    langRegex = /[a-zA-Z]/g;
+                    break;
+                default:
+                    return 0;
+            }
+
+            const matches = plainText.match(langRegex);
+            if (matches) {
+                langChars = matches.length;
+            }
+
+            // 计算语言密度百分比
+            return (langChars / totalChars * 100).toFixed(2);
         }
     </script>
 </body>
